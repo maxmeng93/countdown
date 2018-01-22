@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>倒计时</title>
+    <style>
+        *, 
+        *:after, 
+        *:before { 
+            -webkit-box-sizing: border-box; 
+            -moz-box-sizing: border-box; 
+            box-sizing: border-box; 
+        }
+        .clearfix:after {
+            visibility:hidden;
+            display:block;
+            font-size:0;
+            content:" ";
+            clear:both;
+            height:0
+        }
+        .clearfix {
+            *zoom:1
+        }
+        .fl {
+            float:left
+        }
+        .fr {
+            float:right
+        }
+        .fl,
+        .fr{
+            _display:inline
+        }
+        html, body, .wrapper {
+            margin: 0;
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            user-select: none;
+        }
+        body { 
+            /* background: url("./img/bg-tile.png") top center;
+            background-size: cover; */
+            background: url("./img/bg-tile.png") repeat;
+        }
+
+        .wrapper { 
+            display: table; 
+        }
+
+        /* #logo {
+            position: absolute;
+            top: 3em;
+            left: 3em;
+            width: 350px;
+        } */
+
+        .cell {
+            display: table-cell;
+            margin: 0;
+            padding: 0;
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        #holder {
+            width: 750px;
+            /* height: 98px; */
+            margin: auto;
+        }
+
+        .cntSeparator { 
+            display: none; 
+        }
+
+        .digits-wrap {
+            display: inline-block;
+            float: left;
+            margin-left: 40px;
+            /* height: 98px; */
+            /* min-width: 134px; */
+            background: rgba(0, 0, 0, .6);
+            border-radius: 10px;
+        }
+
+        .digits-wrap:first-child {
+            margin-left: 0;
+        }
+
+        .cntDigit {
+            margin-top: 6px;
+            /* width: 67px; 
+            height: 90px;  */
+            width: 134px; 
+            height: 180px; 
+            float: left; 
+            background: url("./img/digits(hong).png") 0px 0px no-repeat;
+            background-size: 134px 10080px;
+        }
+
+        /* 底部按钮 */
+        .btn-wrap {
+            margin-top: 100px;
+            position: absolute;
+            width: 100%;
+            bottom: 15em;
+        }
+
+        .btn-wrap a {
+            display: inline-block;
+            margin-left: 1em;
+            padding: .5em;
+            cursor: pointer;
+            color: #aaa;
+        }
+
+        .btn-wrap a:first-child {
+            margin-left: 0;
+        }
+
+        /* dialog */
+        .dialog {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, .8);
+            color: #eee;
+        }
+
+        .dialog.show {
+            display: block;
+        }
+
+        .dialog P {
+            margin: 0;
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            color: #eee;
+            font-size: 100px;
+        }
+
+        .dialog-setTime {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, .8);
+            color: #eee;
+        }
+        .dialog-setTime.show {
+            display: block;
+        }
+        .dialog-setTime div {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        .dialog-setTime label {
+            margin-right: 20px;
+        }
+        .dialog-setTime input {
+            width: 50px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="wrapper">
+        <!-- <img id="logo" src="./img/logo.png" alt="LOGO"> -->
+        <div class="cell">
+            <div id="holder">
+                <div class="digits clearfix">
+                    <div class="digits-wrap">
+                        <div id="cnt_0" class="cntDigit"></div>
+                        <div id="cnt_1" class="cntDigit"></div>
+                    </div>
+                    <div class="digits-wrap">
+                        <div id="cnt_2" class="cntDigit"></div>
+                        <div id="cnt_3" class="cntDigit"></div>
+                    </div>
+                    <div class="digits-wrap">
+                        <div id="cnt_4" class="cntDigit"></div>
+                        <!-- <div id="cnt_5" class="cntDigit"></div>
+                        <div id="cnt_6" class="cntDigit"></div> -->
+                    </div>
+                </div>
+            </div>
+            <div class="btn-wrap">
+                <a onclick="startCountDown()">开始</a>
+                <a onclick="showSetTimeDialog()">设置时间</a>
+                <!-- <a onclick="stopCountDown()">停止</a> -->
+                <a onclick="resetCountDown()">重置</a>
+            </div>
+        </div>
+        <div class="dialog" onclick="hideDialog(event)">
+            <p>时间到</p>
+        </div>
+        <div class="dialog-setTime">
+            <div>
+                <label>
+                    <input type="number" min="0" name="m" value="0" autofocus>
+                    <span>分</span>
+                </label>
+                <label>
+                    <input type="number" min="0" name="s" value="0">
+                    <span>秒</span>
+                </label>
+                <button onclick="setTimeCountDown()">确定</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="./js/jquery.min.js"></script>
+    <script>
+        // 倒计时
+        var countDown = function (userOptions) {
+
+            var countDown = {};
+            
+            var options = {
+                digitImages: 6,
+                digitWidth: 67 * 2,
+                digitHeight: 90 * 2,
+                time: 0, // 毫秒
+                startTime: '00:00:0',
+                timerEnd: function () {}
+            };
+
+            var digits = $('.cntDigit'), // 倒计时数字元素
+                timer = null;
+
+            // 设置时间
+            countDown.setTime = function (time) {
+                countDown.reset();
+                options.time = time;
+                countDown.createDigits();
+            };
+
+            // 根据 startTime 绘制数字
+            countDown.createDigits = function (stop) {
+                var current = 0;
+                options.startTime = transform(options.time).replace(/:/g, '');
+                for (var i = 0; i < options.startTime.length; i++) {
+                    current = parseInt(options.startTime[i]);
+                    
+                    if (stop) {
+                        margin(i, '-9900');
+                    } else {
+                        margin(i, -current * options.digitHeight * options.digitImages);
+                    }
+
+                }
+            };
+
+            // 设置数字图片的位置
+            var margin = function(i, val) {
+                if (val !== undefined) {
+                    digits.eq(i).css({
+                        'backgroundPosition': '0 ' + val + 'px'
+                    });
+                }
+            };
+
+            // 时间转换
+            var transform = function (time) {
+                var ms = parseInt(time % 1000);
+                var s = parseInt((time / 1000) % 60);
+                var m = parseInt(time / 1000 / 60);
+                // console.log(add0(m, 2) + ':' + add0(s, 2) + ':' + add0(ms, 3));
+                return add0(m, 2) + ':' + add0(s, 2) + ':' + add0(ms, 3);
+            };
+
+            // 数字前补0
+            var add0 = function (num, i) {
+                var str = Array(i + 1).join('0');
+                return (str + num).slice(-i);
+            };
+
+            // 开始倒计时
+            countDown.start = function () {
+                if (timer) return;
+                if (options.time <= 0) {
+                    clearInterval(timer);
+                    return;
+                }
+                timer = setInterval(function() {
+                    if (options.time <= 0) {
+                        clearInterval(timer);
+                        timer = null;
+                        myCountDown.createDigits(true);
+                        return;
+                    }
+                    options.time = options.time - 100;
+                    myCountDown.createDigits();
+                }, 100);
+            };
+
+            // 停止
+            countDown.stop = function () {
+                clearInterval(timer);
+                timer = null;
+            };
+
+            // 重置
+            countDown.reset = function () {
+                options.time = 0;
+                clearInterval(timer);
+                myCountDown.createDigits();
+                timer = null;
+            };
+
+            return countDown;
+        };
+    </script>
+    <script>
+        var myCountDown = countDown({});
+        myCountDown.createDigits();
+
+        // 重置
+        function resetCountDown() {
+            myCountDown.reset();
+        }
+
+        // 开始
+        function startCountDown() {
+            myCountDown.start();
+        }
+
+        // 停止
+        function stopCountDown() {
+            myCountDown.stop();
+        }
+
+        // 点击设置时间按钮
+        function showSetTimeDialog() {
+            $('.dialog-setTime').addClass('show');
+        }
+
+        // 设置时间
+        function setTimeCountDown() {
+            var m = +$('input[name=m]').val();
+            var s = +$('input[name=s]').val();
+            var time = (m * 60 + s) * 1000;
+            myCountDown.setTime(time);
+            $('.dialog-setTime').removeClass('show');
+        }
+
+        // 隐藏时间到
+        function hideDialog(e) {
+            var e = e || window.event;
+            if ($(e.target).hasClass('dialog') || $(e.target).parent('div').hasClass('dialog')) {
+                $('.dialog.show').removeClass('show');
+            }
+        }
+
+    </script>
+</body>
+</html>
